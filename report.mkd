@@ -1,0 +1,125 @@
+% Report on sequence processing
+% Björn Winckler
+
+## Convert SFF to FASTQ
+
+Convert `sff` to `fastq` using [`sff2fastq`][sff2fastq]:
+
+    zcat region1.sff.gz | sff2fastq > region1.fastq
+
+Alternatively, the proprietary tool `sfffile` from 454 Life Sciences can be
+used to create a separate `fasta` and `qual` file that can then be joined into
+a `fastq` file.  This is more cumbersome and a lot slower than using
+`sff2fastq`.
+
+
+## Strip primer and barcodes
+
+Use [USEARCH script][usearch-script] `fastq_strip_barcode_relabel2.py` to strip
+primer and barcodes.  Reads with one or more mismatches in the primer or
+barcodes will be discarded.  This script will add a `barcodelabel=` tag to each
+FASTQ header so that every read can be mapped back to the sample it came from:
+
+    fastq_strip_barcode_relabel2.py region1.fastq primer.fasta barcodes.fasta \
+            region1 > region1-stripped.fastq
+
+The files `primer.fasta` and `barcodes.fasta` are normal FASTA files.  The
+primer header is ignored, but the headers for the barcodes are used to set
+`barcodelabel=` in the output file `stripped.fastq`.  The fourth parameter,
+`region1`, is used in the headers of the output file.  If a sample is split
+across more than one sff file then this parameter should be set to a different
+value for each input file.  This is so that the stripped files can be merged
+into one file later on without any risk of having two identical headers in the
+merged file.
+
+The above script will output information about the primer and barcode matching
+rate.  For example:
+
+    524315 seqs
+    396419 matched
+     23707 barcode mismatches
+    104189 primer mismatches
+
+In this example 75.6% of all reads exactly matched the primer and a barcode,
+4.5% did not match any barcode, and 19.9% did not match the primer.
+
+
+## Pool reads
+
+If there are multiple sff files then now is a good time to merge all files into
+one:
+
+    cat region*-stripped.fastq > reads.fastq
+
+This assumes that the stripped files from the last step are named
+`region1-stripped.fastq`, `region2-stripped.fastq`, and so on.
+
+
+## Quality control
+
+Using [FastQC][fastqc]:
+
+    fastqc reads.fastq
+
+This will generate a folder `reads_fastqc` which contains the results of the
+FastQC analysis.  A zip file `reads_fastqc.zip` of this folder is also created.
+
+FastQC analyses will report on many things but the first that we usually look
+at is the per-base quality statistics.  This tells us how and where the base
+quality drops towards the end of the reads.  Most importantly, if there are
+severe problems with the sequencing run, then this is likely to be noticed by
+looking at the FastQC report.
+
+
+## Quality filtering
+
+The raw reads from above are in FASTQ format and as such include quality
+information about each base.  We typically use this information to remove low
+quality reads (and short reads) before proceeding with an analysis.
+
+Before the quality filtering command is run we typically use the
+[USEARCH][usearch] [`fastq_stats`][usearch-fastq_stats] to get an overview of
+the quality of all reads:
+
+    usearch -fastq_stats reads.fastq -log fastq_stats.txt
+
+The output `fastq_stats.txt` contains information on how many reads would be
+discarded depending on different quality settings.  There are guidelines on
+[how to choose quality filter settings][usearch-choose] on the
+[USEARCH][usearch] website.
+
+Once quality filtering parameters have been chosen (e.g. lets say we chose
+truncation length 300 and maximum expected errors 1.0), the command to filter
+the reads is:
+
+    usearch -fastq_filter reads.fastq -fastq_maxee 1.0 -fastq_trunclen 300 \
+            -fastaout reads.fasta
+
+The above command will print stats on how many reads were discarded after it
+has finished running.
+
+
+## Sample depth
+
+The sample *depth* (i.e. the number of reads assigned to a sample) can be
+summarized by looking at the FASTA headers.  Here is an awk script that prints
+the depth of each sample in order of increasing depth:
+
+    awk '/barcodelabel=/{split($0, x, ";");split(x[2], v, "=");s = v[2];++d[s]}
+        END{for (s in d) print d[s], s}' reads.fasta | sort -n
+
+It is a good idea to save the output to a text file and import it into R in
+order to summarize the depth distribution.  For example, if the output is saved
+to `depth.txt`, then enter the following command in R to get a summary of the
+depth:
+
+    summary(read.table('depth.txt')[ ,1])
+
+
+[sff2fastq]: https://github.com/indraniel/sff2fastq
+[usearch-script]: http://drive5.com/python/
+[fastqc]: http://www.bioinformatics.babraham.ac.uk/projects/fastqc/
+[usearch]: http://www.drive5.com/usearch/manual/
+[usearch-fastq_stats]: http://www.drive5.com/usearch/manual/fastq_stats.html
+[usearch-choose]: http://www.drive5.com/usearch/manual/fastq_choose_filter.html
+[qiime]: http://qiime.org/
