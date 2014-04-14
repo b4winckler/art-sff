@@ -1,33 +1,35 @@
 % Report on sequence processing
 % Björn Winckler
 
+# Preprocessing
+
 ## Convert SFF to FASTQ
 
-Convert `sff` to `fastq` using [`sff2fastq`][sff2fastq]:
+Convert SFF to FASTQ using [`sff2fastq`][sff2fastq]:
 
     zcat region1.sff.gz | sff2fastq > region1.fastq
 
-Alternatively, the proprietary tool `sfffile` from 454 Life Sciences can be
-used to create a separate `fasta` and `qual` file that can then be joined into
-a `fastq` file.  This is more cumbersome and a lot slower than using
+Alternatively, the proprietary tool `sffinfo` from 454 Life Sciences can be
+used to create a separate FASTA and QUAL file that can then be joined into
+a FASTQ file.  This is more cumbersome and a lot slower than using
 `sff2fastq`.
 
 
 ## Strip primer and barcodes
 
-Use [USEARCH script][usearch-script] `fastq_strip_barcode_relabel2.py` to strip
-primer and barcodes.  Reads with one or more mismatches in the primer or
+Use the [USEARCH script][usearch-script] `fastq_strip_barcode_relabel2.py` to
+strip primer and barcodes.  Reads with one or more mismatches in the primer or
 barcodes will be discarded.  This script will add a `barcodelabel=` tag to each
 FASTQ header so that every read can be mapped back to the sample it came from:
 
-    fastq_strip_barcode_relabel2.py region1.fastq primer.fasta barcodes.fasta \
-            region1 > region1-stripped.fastq
+    fastq_strip_barcode_relabel2.py region1.fastq primer.fasta \
+            barcodes.fasta region1 > region1-stripped.fastq
 
 The files `primer.fasta` and `barcodes.fasta` are normal FASTA files.  The
 primer header is ignored, but the headers for the barcodes are used to set
-`barcodelabel=` in the output file `stripped.fastq`.  The fourth parameter,
-`region1`, is used in the headers of the output file.  If a sample is split
-across more than one sff file then this parameter should be set to a different
+`barcodelabel=` in the output file `stripped.fastq`.  The fourth parameter
+("`region1`") is used in the headers of the output file.  If a sample is split
+across more than one SFF file then this parameter should be set to a different
 value for each input file.  This is so that the stripped files can be merged
 into one file later on without any risk of having two identical headers in the
 merged file.
@@ -46,7 +48,7 @@ In this example 75.6% of all reads exactly matched the primer and a barcode,
 
 ## Pool reads
 
-If there are multiple sff files then now is a good time to merge all files into
+If there are multiple SFF files then now is a good time to merge all files into
 one:
 
     cat region*-stripped.fastq > reads.fastq
@@ -62,7 +64,8 @@ Using [FastQC][fastqc]:
     fastqc reads.fastq
 
 This will generate a folder `reads_fastqc` which contains the results of the
-FastQC analysis.  A zip file `reads_fastqc.zip` of this folder is also created.
+FastQC analysis.  A zip file called `reads_fastqc.zip` of this folder is also
+created.
 
 FastQC analyses will report on many things but the first that we usually look
 at is the per-base quality statistics.  This tells us how and where the base
@@ -92,8 +95,8 @@ Once quality filtering parameters have been chosen (e.g. lets say we chose
 truncation length 300 and maximum expected errors 1.0), the command to filter
 the reads is:
 
-    usearch -fastq_filter reads.fastq -fastq_maxee 1.0 -fastq_trunclen 300 \
-            -fastaout reads.fasta
+    usearch -fastq_filter reads.fastq -fastq_maxee 1.0 \
+            -fastq_trunclen 300 -fastaout reads.fasta
 
 The above command will print stats on how many reads were discarded after it
 has finished running.
@@ -105,12 +108,13 @@ The sample *depth* (i.e. the number of reads assigned to a sample) can be
 summarized by looking at the FASTA headers.  Here is an awk script that prints
 the depth of each sample in order of increasing depth:
 
-    awk '/barcodelabel=/{split($0, x, ";");split(x[2], v, "=");s = v[2];++d[s]}
-        END{for (s in d) print d[s], s}' reads.fasta | sort -n
+    awk '/barcodelabel=/{split($0, x, ";");split(x[2], v, "=");
+        s = v[2];++d[s]} END{for (s in d) print d[s], s}' \
+        reads.fasta | sort -n
 
-It is a good idea to save the output to a text file and import it into R in
-order to summarize the depth distribution.  For example, if the output is saved
-to `depth.txt`, then enter the following command in R to get a summary of the
+It is helpful to save the output to a text file and import it into R in order
+to summarize the depth distribution.  For example, if the output is saved to
+`depth.txt`, then enter the following command in R to get a summary of the
 depth:
 
     summary(read.table('depth.txt')[ ,1])
