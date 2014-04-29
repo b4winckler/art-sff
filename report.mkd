@@ -163,6 +163,22 @@ TBD
 TBD
 
 
+# Data analysis
+
+## PCA
+
+Assume `A` is the OTU table (or abundance matrix), where the rows are OTUs and
+the columns are samples.  A visualization of the first two principal
+components:
+
+    pr = prcomp(t(A))
+    biplot(pr)
+
+The percentage of variance explained by the principal components:
+
+    pr$sdev / sum(pr$sdev) * 100
+
+
 [sff2fastq]: https://github.com/indraniel/sff2fastq
 [usearch-script]: http://drive5.com/python/
 [fastqc]: http://www.bioinformatics.babraham.ac.uk/projects/fastqc/
