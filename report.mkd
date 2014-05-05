@@ -141,7 +141,7 @@ following example we use the [Greengenes][greengenes] OTU reference database
 `gg_13_5_otus` and the [USEARCH script][usearch-script] `uc2otutab.py`:
 
     usearch -usearch_global reads.fasta -strand plus -id 0.97 \
-            -db gg_13_5_otus/rep_set/97_otus.fasta
+            -db gg_13_5_otus/rep_set/97_otus.fasta \
             -uc otu-map.uc -dbmatched otu-reps.fasta
     python uc2otutab.py otu-map.uc > otu-table.txt
 
