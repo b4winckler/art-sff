@@ -9,6 +9,12 @@ biostatistics at Karolinska Institutet, Stockholm, Sweden.
 Comments and suggestions for improvements are welcome and can be filed by
 creating a new issue or pull request.
 
+# Downloading
+
+Either generate a document from the markdown source manually (e.g. with
+[pandoc](http://johnmacfarlane.net/pandoc/)), or
+[download a pregenerated pdf](https://github.com/b4winckler/art-sff/releases).
+
 # License
 
 Copyright 2014 Björn Winckler.
