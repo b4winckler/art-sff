@@ -1,0 +1,17 @@
+# Content
+
+This repository contains a technical report on how I perform 16S sequence
+analysis on 454 data at the department of medical epidemiology and
+biostatistics at Karolinska Institutet, Stockholm, Sweden.
+
+# Contributing
+
+Comments and suggestions for improvements are welcome and can be filed by
+creating a new issue or pull request.
+
+# License
+
+Copyright 2014 Björn Winckler.
+
+This work is licensed under a
+[Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License](http://creativecommons.org/licenses/by-nc-nd/4.0/).
